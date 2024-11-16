@@ -21,6 +21,9 @@ instance : Repr Edge where reprPrec e _ := f!"v{e.i}~v{e.j}"
 
 def Edge.incident (e : Edge) (n : Node) := e.i = n ∨ e.j = n
 
+instance : Decidable (Edge.incident e n) := by
+  apply instDecidableOr
+
 -- Graph ---------------------------------
 
 structure Graph where
@@ -51,7 +54,7 @@ def Graph.parallel (g : Graph) (e f : Edge) := e ∈ g.E ∧ f ∈ g.E ∧ f.inc
 instance : Decidable (Graph.parallel g e f) := by
   simp [Graph.parallel, Edge.incident]; apply instDecidableAnd
 
-def Graph.adjacent (g : Graph) (n m : Node) := ∃ e, e ∈ g.E ∧ e.incident n ∧ e.incident m
+def Graph.adjacent (g : Graph) (n m : Node) := ∃ e, e ∈ g.E ∧ ((e.i = n ∧ e.j = m) ∨ (e.j = n ∧ e.i = m))
 
 instance : Decidable (Graph.adjacent g n m) := by
   simp [Graph.adjacent, Edge.incident]; exact List.decidableBEx _ g.E
