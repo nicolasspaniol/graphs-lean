@@ -8,6 +8,14 @@ abbrev Node := Nat
 @[simp]
 def unique [BEq a] (as : List a) := (as ≠ []) → ∀ a ∈ as, (as.filter (. == a)).length = 1
 
+instance  [BEq a] {as : List a} : Decidable  (unique as) := by
+  rw [unique]
+  induction as with
+  | nil => simp; exact instDecidableTrue
+  | cons a as ih =>
+    simp
+    exact instDecidableAnd
+
 -- Edge ---------------------------------
 
 structure Edge where
@@ -248,5 +256,149 @@ match W with
 
 #eval ChangeW 3 (Edge.mk 1 1 2) <| SimpleW (K 4 (by simp; decide)).E
 #eval dijkstra 1 3 (K 3 (by simp; decide)) [(Edge.mk 1 1 3, 5), (Edge.mk 2 1 2, 1), (Edge.mk 3 3 2, 1)]
+
+
+-- hamiltonian paths
+def casB (m n : Node) (E : List Edge) : Bool :=
+match E with
+| [] => if m == n then true else false
+| a::as => if m == a.i then casB a.j n as else false
+
+def cas (m n : Node) (E : List Edge) : Prop :=
+match E with
+| [] => if m == n then true else false
+| a::as => if m == a.i then casB a.j n as else false
+
+theorem cas_casB_iff : casB m n E ↔ cas m n E := by
+  induction E with
+  | nil => rfl
+  | cons a as _ =>
+    exact Eq.to_iff rfl
+
+instance : Decidable (cas m n E) := decidable_of_bool _ cas_casB_iff
+
+#eval cas 1 3 [Edge.mk 1 1 2, Edge.mk 2 2 3]
+
+def FirstNode (E : List Edge) : Node :=
+  match E with
+  | [] => 0
+  | a::_ => a.i
+
+def LastNode (n : Node) (E : List Edge) : Node :=
+  match E with
+  | [] => n
+  | a::as => LastNode a.j as
+
+structure Walk where
+  start : Node
+  walk : List Edge
+  ok : cas start (LastNode start walk) walk
+       ∧ ((walk = []) ∨ start = (FirstNode walk))
+
+instance : Repr Walk where
+  reprPrec w _ :=
+    let formatEdge := fun n => (f!"v{n.i}~v{n.j}")
+    let formatNode := fun n => (f!"v{n}")
+    f!"{[formatNode w.start]++(List.map formatEdge w.walk)++[formatNode (LastNode w.start w.walk)]}"
+
+#eval Walk.mk 1 [Edge.mk 1 1 2, Edge.mk 2 2 1] (by simp; exact ite_some_none_eq_some.mp rfl)
+#eval cas 1 0 [Edge.mk 1 1 2, Edge.mk 2 6 0]
+
+structure Path where
+  path : Walk
+  -- isSimple := isSimple path
+  ok : unique path.walk
+
+
+def Degree (n : Node) (E : List Edge) : Nat :=
+match E with
+| [] => 0
+| x::xs => if x.i == n ∨ x.j == n then 1 + (Degree n xs) else Degree n xs
+
+#eval Degree 1 (K 4 (by simp; decide)).E
+#eval [1,2,3].filter (fun x => ) [1,2,3,4,5]
+
+
+
+-- isomorphism
+@[simp]
+def isSubGraph (G H : Graph) : Prop :=
+  if (∀ n, n ∈ G.N → n ∈ H.N)
+   ∧ (∀ e, e ∈ G.E → ∃ d ∈ H.E, d.i = e.i ∧ d.j = e.j
+      ∧ (e.i ∈ G.N ∧ e.j ∈ G.N))
+  then true
+  else false
+
+@[simp]
+instance : Decidable (isSubGraph G H) := by
+  rw [isSubGraph]
+  exact
+    (if
+            (∀ (n : Node), n ∈ G.N → n ∈ H.N) ∧
+              ∀ (e : Edge),
+                e ∈ G.E → ∃ d, d ∈ H.E ∧ d.i = e.i ∧ d.j = e.j ∧ e.i ∈ G.N ∧ e.j ∈ G.N then
+          true
+        else false).decEq
+      true
+
+--other implementation of graphs that can work better for planarity
+
+abbrev oEdge := Nat
+
+structure oGraph where
+  N : List Node
+  E : List oEdge
+  t : oEdge → Node
+  h : oEdge → Node
+  ok : ∀ e ∈ E, (t e) ∈ N ∧ (h e) ∈ N
+
+
+
+#eval isSubGraph (K 3 (by simp;decide)) (K 4 (by simp; decide))
+#eval isSubGraph (K 3 (by simp;decide)) (Graph.mk ((K 3 (by simp;decide)).N.insert 4) (K 3 (by simp;decide)).E (by simp; decide))
+
+@[simp]
+def isomorphism (G H : Graph) (f_n : Node -> Node) (f_e : Edge -> Edge) : Prop :=
+  if (List.map f_n G.N) = H.N ∧ (List.map f_e G.E) = H.E then true else false
+
+@[simp]
+instance : Decidable (isomorphism G H f_n f_e) := by
+  rw [isomorphism]
+  simp
+  exact instDecidableAnd
+
+#eval List.map (Nat.add 1 ·) (K 3 (by simp;decide)).N
+#eval List.map (fun x => Edge.mk x.id (x.i + 1) (x.j + 1)) (K 3 (by simp;decide)).E
+def H := Graph.mk (List.map (Nat.add 1 ·) (K 3 (by simp;decide)).N) (List.map (fun x => Edge.mk x.id (x.i + 1) (x.j + 1)) (K 3 (by simp;decide)).E) (by simp; decide)
+#eval isomorphism (K 3 (by simp;decide)) H (Nat.add 1 ·) (fun x => Edge.mk x.id (x.i + 1) (x.j + 1))
+
+def K5 : Graph := K 5 (by simp;decide)
+def K33 : Graph := Graph.mk [1,2,3,4,5,6] [(Edge.mk 1 1 4), (Edge.mk 2 1 5), (Edge.mk 3 1 6),(Edge.mk 4 2 4), (Edge.mk 5 2 5), (Edge.mk 6 2 6),(Edge.mk 7 3 4), (Edge.mk 8 3 5), (Edge.mk 9 3 6)] (by simp)
+
+
+@[simp]
+instance : Decidable (isomorphism G K33 f_n f_e ∨ isomorphism G K5 f_n f_e) := by
+  exact instDecidableOr
+
+
+instance : Decidable (∃ H f_n f_e, isSubGraph H G ∧ isomorphism H K33 f_n f_e ∨ isomorphism H K5 f_n f_e) := by
+  unfold isomorphism
+  simp
+  sorry
+
+
+def isPlanar (G : Graph) : Bool :=
+if (∃ H f_n f_e, isSubGraph H G ∧ (isomorphism H K33 f_n f_e) ∨ (isomorphism H K5 f_n f_e))
+then false else true
+
+instance : Decidable (isPlanar G) := by
+  rw [isPlanar]
+  exact
+    (if ∃ H f_n f_e, isSubGraph H G ∧ isomorphism H K33 f_n f_e ∨ isomorphism H K5 f_n f_e then
+          false
+        else true).decEq
+      true
+
+#eval isPlanar K5
 
 end GraphTheory
