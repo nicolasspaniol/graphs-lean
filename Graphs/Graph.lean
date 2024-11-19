@@ -430,6 +430,18 @@ def ECyclePair (_ : EulerCycle): Prop :=
 
 example (EC : EulerCycle) (G : Graph) : hasECycle EC.G ↔ ECyclePair EC := by
   simp [hasECycle, ECyclePair]
+  induction EC.G.E with
+  | nil => simp [Degree]
+  | cons a as ih =>
+  intro n
+  simp [Degree]
+  by_cases h : a.i = n
+  simp [h]
+  sorry
+  sorry
+
+example (EC : EulerCycle) (G : Graph) : hasECycle EC.G ↔ ECyclePair EC := by
+  simp [hasECycle, ECyclePair]
   induction EC.G.N with
   | nil => simp
   | cons t ts ih =>
