@@ -48,7 +48,7 @@ instance : Decidable (Edge.incident e n) := by
 structure Graph where
   N : List Node
   E : List Edge
-  ok : (∀ e, e ∈ E → (e.i ∈ N ∧ e.j ∈ N))
+  ok : (∀ e, e ∈ E → (e.i ∈ N ∧ e.j ∈ N ∧ ¬∃ d ∈ E, d ≠ e ∧ e.id = d.id))
        ∧ unique N
        ∧ unique E
 
@@ -458,17 +458,6 @@ example (EC : EulerCycle) (G : Graph) : hasECycle EC.G ↔ ECyclePair EC := by
     sorry
 
 
-
--- the theorem can't be proven because it needs another inductive
-theorem EulerCycle_iff (G : Graph) :  (∀ n ∈ G.N, Degree n G.E % 2 = 0) ↔ ∃ (EC : EulerCycle), EC.G = G := by
-  induction G.E with
-  |nil =>
-  |cons a as ih => sorry
-
-theorem Pair_ECycle_iff (G : Graph) : hasECycle G ↔ ECyclePair G := by rw [hasECycle, ECyclePair]; apply EulerCycle_iff
-
-instance : Decidable (ECyclePair G) := decidable_of_iff (_) (by apply EulerCycle_iff)
-
 -- Hamiltonian Graphs ------------------------------
 
 structure HamCycle where
@@ -488,21 +477,21 @@ instance : Repr HamCycle where
 
 -- first try of implementing a sufficient condition checker
 def old_hasHamCycle (G : Graph) : Prop :=
-  ∀m n, m ∈ G.N ∧ n ∈ G.N ∧ ¬(G.adjacent m n) -> Degree m G.E + Degree n G.E ≥ G.N.length
+  ∀m n, m ∈ G.N ∧ n ∈ G.N ∧ ¬(G.adjacent m n) → Degree m G.E + Degree n G.E ≥ G.N.length ∧ G.N.length ≥ 3
 
 def hasHam (G:Graph) (N:List Node) : Prop :=
   match N with
   | [] => true
   | t::ts =>
     let D := G.N.length
-    if ∀n ∈ ts, Degree n G.E + Degree t G.E ≥ D then hasHam G ts else false
+    if ∀n ∈ ts, Degree n G.E + Degree t G.E ≥ D ∧ G.N.length ≥ 3 then hasHam G ts else false
 
 def hasHamB (G:Graph) (N:List Node) : Bool :=
   match N with
   | [] => true
   | t::ts =>
     let D := G.N.length
-    if ∀n ∈ ts, Degree n G.E + Degree t G.E ≥ D then hasHamB G ts else false
+    if ∀n ∈ ts, Degree n G.E + Degree t G.E ≥ D ∧ G.N.length ≥ 3 then hasHamB G ts else false
 
 def hasHam_hasHamB_iff {G : Graph} {N : List Node} : hasHamB G N  ↔ hasHam G N:= by
   induction N with
@@ -622,18 +611,14 @@ deriving Repr
 instance : Decidable (∃ H f_n f_e, isSubGraph H G ∧ (Isomorphism H K33 f_n f_e ∨ Isomorphism H K5 f_n f_e)) :=
   by sorry
 
-def isPlanar (G : Graph) : Prop :=
-if (∃H f_n f_e, (isSubGraph H G ) ∧ (Isomorphism H K33 f_n f_e ∨ Isomorphism H K5 f_n f_e))
-then false else true
+def isnotPlanar (G : Graph) : Prop :=
+ ∃H f_n f_e, (isSubGraph H G ) ∧ (Isomorphism H K33 f_n f_e ∨ Isomorphism H K5 f_n f_e)
 
-instance : Decidable (isPlanar G) := by
-  rw [isPlanar]
-  exact
-    (if ∃ H f_n f_e, isSubGraph H G ∧ (Isomorphism H K33 f_n f_e ∨ Isomorphism H K5 f_n f_e) then
-          false
-        else true).decEq
-      true
 
-#eval isPlanar K5
+instance : Decidable (isnotPlanar G) := by
+  rw [isnotPlanar]
+  exact instDecidableExistsGraphForallNodeForallEdgeAndIsSubGraphOrIsomorphismK33K5
+
+#eval isnotPlanar K5
 
 end GraphTheory
