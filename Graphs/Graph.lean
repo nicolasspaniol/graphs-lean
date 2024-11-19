@@ -138,7 +138,7 @@ match l with
 #eval L 2  [(2,(0,4)), (3,(0,1))]
 #eval LPair 2 [(2, (0, 4)), (3, (0, 1))]
 
--- Weighted graphs
+-- Weighted graphs --------------------------------
 structure WGraph where
   N : List Node
   E : List Edge
@@ -159,6 +159,8 @@ instance : Repr WGraph where
     f!"(N={List.map formatNode g.N}, E={repr g.E} W={List.map formatWeights g.W})"
 
 #eval WGraph.mk [1,2,3] [Edge.mk 1 1 2, Edge.mk 2 2 3] [((Edge.mk 1 1 2), 3), ((Edge.mk 2 2 3), 1)] (by simp)
+
+-- Dijkstra ----------------------------
 
 def findMinL  (v : (Node × Int)) (l : List (Node × (Node × Int))) : (Node × Int) :=
 match l with
@@ -239,7 +241,7 @@ example : ∀ v, v ∈ T → (fun x => MinLNode (0,x) (updateLsMap v (filterAdj 
     sorry
 
 -- partial definition
-partial def dijkstra (a z : Node) (G : Graph) (W : List (Edge × Int)) : List (Node × (Node × Int)) :=
+partial def Dijkstra (a z : Node) (G : Graph) (W : List (Edge × Int)) : List (Node × (Node × Int)) :=
   let labels := newL a 0 <|newLs G.N (-1)
   let T := G.N
   if T.length = 0 then [(0,(0,0))] else
@@ -267,9 +269,9 @@ match W with
 | x::xs => if x.1 == e then (x.1,v)::xs else x::(ChangeW v e xs)
 
 #eval ChangeW 3 (Edge.mk 1 1 2) <| SimpleW (K 4 (by simp; decide)).E
-#eval dijkstra 1 3 (K 3 (by simp; decide)) [(Edge.mk 1 1 3, 5), (Edge.mk 2 1 2, 1), (Edge.mk 3 3 2, 1)]
+#eval Dijkstra 1 3 (K 3 (by simp; decide)) [(Edge.mk 1 1 3, 5), (Edge.mk 2 1 2, 1), (Edge.mk 3 3 2, 1)]
 
--- walks, paths and cycles
+-- Walks, paths and cycles --------------------------------
 def casB (m n : Node) (E : List Edge) : Bool :=
 match E with
 | [] => if m == n then true else false
@@ -339,7 +341,6 @@ structure Path where
   aWalk : Walk
   isSimple := isSimple aWalk
   ok : unique aWalk.aWalk
--- deriving Repr
 
 instance : Repr Path where
   reprPrec w _ :=
@@ -367,7 +368,7 @@ instance : Repr Cycle where
 #eval Cycle.mk (Walk.mk 1 [Edge.mk 1 1 2, Edge.mk 2 2 1] (by simp; exact ite_some_none_eq_some.mp rfl)) (by simp; rw [lastNode, lastNode, lastNode])
 #eval (Cycle.mk (Walk.mk 1 [Edge.mk 1 1 2, Edge.mk 2 2 1] (by simp; exact ite_some_none_eq_some.mp rfl)) (by simp; rw [lastNode, lastNode, lastNode])).aWalk.nodes
 
--- Euler graphs
+-- Euler graphs --------------------------------
 
 structure EulerPath where
   G : Graph
@@ -437,7 +438,7 @@ theorem Pair_ECycle_iff (G : Graph) : hasECycle G ↔ ECyclePair G := by rw [has
 
 instance : Decidable (ECyclePair G) := decidable_of_iff (_) (by apply EulerCycle_iff)
 
--- Hamiltonian Graphs
+-- Hamiltonian Graphs ------------------------------
 
 structure HamCycle where
   G : Graph
@@ -492,7 +493,7 @@ abbrev hasHamCycle (G : Graph) : Prop := hasHam G G.N
 def isConnected (G : Graph) : Prop :=
   ∀ m n, m ∈ G.N ∧ n ∈ G.N → ∃ (P : Path), P.aWalk.start = m ∧ lastNode P.aWalk.start P.aWalk.aWalk = n
 
--- isomorphism
+-- Isomorphism ----------------------------------------
 @[simp]
 def isSubGraph (G H : Graph) : Prop :=
   if (∀ n, n ∈ G.N → n ∈ H.N)
