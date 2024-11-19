@@ -246,7 +246,7 @@ partial def Dijkstra (a z : Node) (G : Graph) (W : List (Edge × Int)) : List (N
   let T := G.N
   if T.length = 0 then [(0,(0,0))] else
     help  z T labels T G.E W [] where
-    help (z : Node) (t : List Node) (ls : List (Node × (Node × Int)))
+     help (z : Node) (t : List Node) (ls : List (Node × (Node × Int)))
       (N : List Node) (es : List Edge) (ws : List (Edge × Int)) (f : List (Node × (Node × Int)))
       : List (Node × Node × Int) :=
       if (isinGraph z t) then
@@ -425,13 +425,32 @@ instance : Decidable (hasECycle G) := by
 #eval hasECycle (K 4 (by simp;decide))
 
 
-def ECyclePair (G : Graph) : Prop :=
-  ∃ (EC : EulerCycle), EC.G = G
+def ECyclePair (_ : EulerCycle): Prop :=
+  true
+
+example (EC : EulerCycle) (G : Graph) : hasECycle EC.G ↔ ECyclePair EC := by
+  simp [hasECycle, ECyclePair]
+  induction EC.G.N with
+  | nil => simp
+  | cons t ts ih =>
+    intro n
+    by_cases h : n ≠ t ∧ n ∈ ts
+    cases h
+    rename_i ht
+    simp
+    simp at ih
+    rw [ih]
+    simp
+    apply ht
+    simp at h
+    sorry
+
+
 
 -- the theorem can't be proven because it needs another inductive
 theorem EulerCycle_iff (G : Graph) :  (∀ n ∈ G.N, Degree n G.E % 2 = 0) ↔ ∃ (EC : EulerCycle), EC.G = G := by
   induction G.E with
-  |nil =>  sorry
+  |nil =>
   |cons a as ih => sorry
 
 theorem Pair_ECycle_iff (G : Graph) : hasECycle G ↔ ECyclePair G := by rw [hasECycle, ECyclePair]; apply EulerCycle_iff
