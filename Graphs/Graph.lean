@@ -119,25 +119,6 @@ def e2 := (K3.E.get? 2).get (by decide)
 
 #eval Graph.parallel K3 e1 e2
 
-def L (n : Node) (l : List (Node × (Node × Int))) : Int :=
-match l.filter (λ (x,_) => x == n) with
-| [] => 0
-| x::_ => x.2.2
-
-def LPair (n : Node) (l : List (Node × (Node × Int))) : (Node × Node × Int) :=
-match l.filter (λ (x,_) => x == n) with
-| [] => (0,0,0)
-| x::_ => (n, x.2.1, x.2.2)
-
-def newL (n : Node) (v : Nat) (l : List (Node × (Node × Int))) : List (Node × (Node × Int)) :=
-match l with
-| [] => l
-| x::xs => if n == x.1 then (n,(x.2.1, v))::xs else x::(newL n v xs)
-
-#eval newL 2 4 [(2,(0,1)), (3,(0,1))]
-#eval L 2  [(2,(0,4)), (3,(0,1))]
-#eval LPair 2 [(2, (0, 4)), (3, (0, 1))]
-
 -- Weighted graphs --------------------------------
 structure WGraph where
   N : List Node
@@ -161,6 +142,25 @@ instance : Repr WGraph where
 #eval WGraph.mk [1,2,3] [Edge.mk 1 1 2, Edge.mk 2 2 3] [((Edge.mk 1 1 2), 3), ((Edge.mk 2 2 3), 1)] (by simp)
 
 -- Dijkstra ----------------------------
+
+def L (n : Node) (l : List (Node × (Node × Int))) : Int :=
+match l.filter (λ (x,_) => x == n) with
+| [] => 0
+| x::_ => x.2.2
+
+def LPair (n : Node) (l : List (Node × (Node × Int))) : (Node × Node × Int) :=
+match l.filter (λ (x,_) => x == n) with
+| [] => (0,0,0)
+| x::_ => (n, x.2.1, x.2.2)
+
+def newL (n : Node) (v : Nat) (l : List (Node × (Node × Int))) : List (Node × (Node × Int)) :=
+match l with
+| [] => l
+| x::xs => if n == x.1 then (n,(x.2.1, v))::xs else x::(newL n v xs)
+
+#eval newL 2 4 [(2,(0,1)), (3,(0,1))]
+#eval L 2  [(2,(0,4)), (3,(0,1))]
+#eval LPair 2 [(2, (0, 4)), (3, (0, 1))]
 
 def findMinL  (v : (Node × Int)) (l : List (Node × (Node × Int))) : (Node × Int) :=
 match l with
